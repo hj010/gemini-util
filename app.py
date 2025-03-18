@@ -1,15 +1,8 @@
 import google.generativeai as genai
 import telegram
 from datetime import datetime
-import schedule
-import time
 import asyncio
 import os
-from flask import Flask
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Set your API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -17,13 +10,6 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # Telegram bot token and chat ID
 telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 chat_id = os.getenv("CHAT_ID")
-
-# Initialize Flask app
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Telegram Interview Bot is running!"
 
 # Generate interview questions using Gemini
 def generate_interview_questions():
@@ -48,30 +34,18 @@ async def send_telegram_message(content):
     except Exception as e:
         print(f"Error sending message: {e}")
 
-# Scheduled job to run daily at 9:00 AM (async)
-async def job():
+# Main function to execute the job
+async def main():
     print(f"Running job at {datetime.now()}")
     questions_answers = generate_interview_questions()
 
+    # Split the questions and answers into individual items
     items = questions_answers.split('\n')
-    valid_items = [item.strip() for item in items if item.strip()]
+    valid_items = [item.strip() for item in items if item.strip()]  # Remove empty lines
 
     for item in valid_items:
         await send_telegram_message(item)
-        await asyncio.sleep(2)
-
-# Test the message immediately (async)
-async def main():
-    print("Testing message now...")
-    await job()
-
-    schedule.every().day.at("09:00").do(lambda: asyncio.run(job()))
-
-    print("Bot is running...")
-
-    while True:
-        schedule.run_pending()
-        await asyncio.sleep(60)
+        await asyncio.sleep(2)  # Delay to avoid rate limiting
 
 if __name__ == "__main__":
     asyncio.run(main())
